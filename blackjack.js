@@ -103,17 +103,23 @@ function shuffle(v) {
 }
 
 // ==================================
+
 var deck,player,dealer;
+var busted = false;
+var score = 0;
+
+//改變上方的message之函數
 
 function outcome(msg,state){
   $("#outcome").text(msg).attr("class","alert alert-" + state);
 }
+//---------------
 
-function outcome(msg,state){
-  $("#outcome").text(msg).attr("class","alert alert-" + state);
-}
+//重新開始新的一局之函數(init)
 
-$(document).ready(function(){
+function init(){
+  outcome("你好","info");
+
   deck = new Deck();
   deck.shuffle();
   player = new Hand();
@@ -125,18 +131,118 @@ $(document).ready(function(){
   dealer.add_card(deck.deal_card());
 
   var board = $("#player .blackjack-board");
-  board.empty();
+
+//玩家的牌----------
+
+  board.empty(); //清空
   var cards = player.cards;
   for(k in cards)
-    board.append($("<div class='poker poker-"+cards[k].toString()+"'></div>"));
+    board.append($("<div class='poker poker-"+cards[k].toString()+"'></div>")); //顯示手牌
+//------------------//
+
+//莊家的牌
 
   board = $("#dealer .blackjack-board");
   board.empty();
   var cards = dealer.cards;
   for(k in cards){
     if(k == 0)
-      board.append($("<div class='poker poker-back-heartstone'></div>"));
+      board.append(jQuery("<div class='poker poker-back-heartstone'></div>")); //蓋第一張牌
     else
-      board.append($("<div class='poker poker-"+cards[k].toString()+"'></div>"));
+      board.append($("<div class='poker poker-"+cards[k].toString()+"'></div>")); //顯示第二張牌
   }
+
+  $("#player .badge").text(player.get_value());
+  $("#dealer .badge").text("?");
+
+  busted = false;
+}
+
+//由此開始
+
+$(document).ready(function(){
+  init();
+  
+//hit鍵
+
+  $("#btn-hit").click(function(){
+
+    if(busted){
+      outcome("請按下 deal 進行下一局","warning");
+      return;
+    }
+
+    busted = !player.hit(deck);
+    console.log(card.toString());
+    console.log(player.toString());
+    var cardDOM = $("<div class='poker poker-"+player.cards[player.cards.length - 1].toString()+"'></div>");
+    console.log(cardDOM);
+    $("#player .blackjack-board").append(cardDOM);
+    $("#player .badge").text(player.get_value());
+
+    if(busted){
+      outcome("洗洗睡吧","danger");
+      score--;
+      $("#score").text("Score: "+score);
+    }
+  });
+
+  //stand鍵
+
+  jQuery("#btn-stand").click(function(){
+    if(busted){
+      outcome("請按下 deal 進行下一局","warning");
+      return;
+    }
+    dealer.dealer_run(deck,player);
+    if(player.wins(dealer)){
+      outcome("你贏了!","success");
+      score++;
+      $("#score").text("Score: "+score);
+    }
+    else{
+      outcome("QQ","danger");
+      score--;
+      $("#score").text("Score: "+score);
+    }
+
+    busted = true;
+
+    var board = $("#dealer .blackjack-board");
+    board.empty();
+    var cards = dealer.cards;
+    for(k in cards){
+      board.append($("<div class='poker poker-"+cards[k].toString()+"'></div>"));
+    }
+    $("#dealer .badge").text(dealer.get_value());
+  });
+
+//deal鍵
+
+  jQuery("#btn-deal").click(function(){
+    if(!busted){
+      score--;
+      $("#score").text("Score: "+score);
+    }
+    init();
+  });
+
+  $.ajax("http://jquery.pastleo.me/record.php",{
+    dataType:"json",
+
+    success:function(data){
+      console.log(data);
+      $(".table").empty().append($("<tr><td>玩家</td><td>分數</td></tr>"));
+      for(k in data)
+        $(".table").append($("<tr><td>"+k+"</td><td>"+data[k]+"</td></tr>"));
+    }
+
+  });
+  
 });
+
+// jQuery 大致運作模式
+
+// 1.選取DOM
+// 2.針對選到的 DOM 進行操作
+
